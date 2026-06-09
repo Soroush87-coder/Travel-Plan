@@ -441,35 +441,33 @@ export default function Page() {
                 </tbody>
               </table>
 
-              {itinerary.map((dest, di) => (
-                <section className="dest-block" key={di}>
-                  <div className="dest-block-head">
-                    <span className="dest-pin">{di + 1}</span>
-                    <div>
-                      <h3>{dest.country} — {dest.city}</h3>
-                      <div className="dest-meta">{fmtLong(dest.arrival)} – {fmtLong(dest.departure)} · {daysInc(dest.arrival, dest.departure)} days</div>
-                    </div>
-                  </div>
-                  {(dest.hotelName || dest.hotelPhone || dest.arrivalTransfer || dest.departureTransfer) && (
-                    <div className="logistics">
-                      {dest.hotelName && <span><b>Stay:</b> {dest.hotelName}{dest.hotelPhone ? ` · ${dest.hotelPhone}` : ""}</span>}
-                      {dest.arrivalTransfer && <span><b>Arrival:</b> {dest.arrivalTransfer}</span>}
-                      {dest.departureTransfer && <span><b>Departure:</b> {dest.departureTransfer}</span>}
-                    </div>
-                  )}
-                  <div className="days">
-                    {dest.days.map((day) => (
-                      <div className="day" key={day.globalDay}>
-                        <div className="day-rail"><span className="stamp">{day.globalDay}</span></div>
-                        <div className="day-body">
-                          <div className="day-top"><h4>Day {day.globalDay} — {day.title}</h4><span className="day-date">{fmtStamp(day.date)}</span></div>
-                          <ul>{day.bullets.map((b, bi) => <li key={bi}>{b}</li>)}</ul>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
+              <div className="visa-itinerary">
+                <h3 className="section-title">Daily Accommodation Schedule</h3>
+                <table className="daily-table">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Date</th>
+                      <th>City</th>
+                      <th>Hotel</th>
+                      <th>Telephone</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {itinerary.flatMap((dest) =>
+                      dest.days.map((day) => (
+                        <tr key={day.globalDay}>
+                          <td>{day.globalDay}</td>
+                          <td>{fmtStamp(day.date)}</td>
+                          <td>{dest.city}</td>
+                          <td>{dest.hotelName || "—"}</td>
+                          <td>{dest.hotelPhone || "—"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
               <div className="doc-foot">Travel Market · Generated for travel planning and documentation purposes.</div>
             </div>
@@ -696,6 +694,15 @@ const CSS = `
 .day-body li{font-size:13.5px;color:var(--ink-soft);margin:4px 0;}
 .doc-foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);text-align:center;}
 
+
+/* one-page visa itinerary table */
+.visa-itinerary{margin-top:16px;}
+.section-title{font-family:var(--display);font-size:16px;font-weight:700;margin:0 0 8px;}
+.daily-table{width:100%;border-collapse:collapse;font-size:11px;}
+.daily-table th{background:#15131F;color:#fff;padding:5px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.04em;}
+.daily-table td{padding:4px 5px;border-bottom:1px solid #ECEAF4;vertical-align:top;}
+.daily-table tr:nth-child(even){background:#FAFAFC;}
+
 /* footer */
 .footer{background:#000;color:#9C97B8;margin-top:50px;text-align:center;padding:46px 20px 40px;}
 .footer img{height:150px;width:auto;display:block;margin:0 auto 12px;}
@@ -708,13 +715,26 @@ const CSS = `
 
 /* print */
 @media print{
+  @page{size:A4 portrait;margin:8mm;}
   .tg-root{background:#fff;}
   .no-print{display:none!important;}
-  .doc{margin:0;border:none;border-radius:0;box-shadow:none;max-width:none;}
-  .doc-pad{padding:0;}
-  @page{margin:16mm 14mm;}
-  .dest-block,.day,.sum-table{break-inside:avoid;}
-  .doc-chip{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .doc-title,.doc-kicker,.dest-block-head h3,.day-body h4{color:#15131F!important;}
+  .doc{margin:0!important;border:none!important;border-radius:0!important;box-shadow:none!important;max-width:none!important;width:100%!important;}
+  .doc-pad{padding:0!important;}
+  .doc-head{padding-bottom:8px!important;border-bottom:1px solid #15131F!important;}
+  .doc-chip{width:32px!important;height:32px!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .doc-kicker{font-size:8px!important;margin-bottom:2px!important;}
+  .doc-title{font-size:18px!important;line-height:1.05!important;}
+  .doc-agency{font-size:9px!important;line-height:1.25!important;}
+  .doc-summary{padding:8px 0!important;gap:8px 18px!important;}
+  .doc-summary .lbl{font-size:8px!important;}
+  .doc-summary .val{font-size:10px!important;}
+  .sum-table{font-size:8px!important;margin:8px 0 8px!important;break-inside:avoid;}
+  .sum-table th,.sum-table td{padding:3px!important;}
+  .visa-itinerary{margin-top:8px!important;}
+  .section-title{font-size:12px!important;margin:0 0 5px!important;}
+  .daily-table{font-size:8px!important;break-inside:avoid;}
+  .daily-table th{font-size:7px!important;padding:3px!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .daily-table td{padding:2px 3px!important;line-height:1.12!important;}
+  .doc-foot{display:none!important;}
 }
 `;
