@@ -1,14 +1,6 @@
-import "./globals.css";
-
 export const metadata = {
-  title: "Travel Itinerary Generator",
-  description: "Generate a concise, professional multi-destination travel itinerary you can save as PDF.",
-};
-
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
+  title: 'Travel Market — Itinerary Generator',
+  description: 'Travel itinerary generator by Travel Market',
 };
 
 export default function RootLayout({ children }) {
