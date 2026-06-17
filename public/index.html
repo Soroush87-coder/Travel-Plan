@@ -458,31 +458,175 @@ function buildScaffold(){
     return Object.assign({},dest,{di,days});
   });
 }
-function templateDay(sd,dest,isFirstDest,isFinalDest,nextCity){
+
+/* ---------- CURATED PLACES DB (used by the offline fallback) ----------
+   Real, specific places for the cities Travel Market sells most often.
+   Each entry is a pool of distinct half/full-day plans. The fallback
+   picks non-repeating plans so the PDF never shows the same generic day. */
+const PLACES_DB={
+  "dubai":[
+    {title:"Downtown & Burj Khalifa",bullets:["At the Top, Burj Khalifa","The Dubai Mall & Fountain show","Souk Al Bahar dinner"]},
+    {title:"Old Dubai & the Creek",bullets:["Al Fahidi historic district","Abra ride across Dubai Creek","Gold & Spice Souks in Deira"]},
+    {title:"Palm Jumeirah day",bullets:["The View at The Palm","Atlantis Aquaventure","Boardwalk walk at sunset"]},
+    {title:"Marina & beaches",bullets:["JBR Beach & The Walk","Ain Dubai viewpoint","Dubai Marina yacht stroll"]},
+    {title:"Desert experience",bullets:["Morning dune drive","Camel ride in the desert","Bedouin-style dinner & show"]},
+    {title:"Culture & future",bullets:["Museum of the Future","Dubai Frame","La Mer beachfront"]},
+    {title:"Global Village & shopping",bullets:["Mall of the Emirates","Global Village pavilions","Ski Dubai stop"]}
+  ],
+  "abu dhabi":[
+    {title:"Grand Mosque & culture",bullets:["Sheikh Zayed Grand Mosque","Qasr Al Watan palace","Corniche evening walk"]},
+    {title:"Saadiyat museums",bullets:["Louvre Abu Dhabi","Saadiyat public beach","Manarat Al Saadiyat"]},
+    {title:"Yas Island thrills",bullets:["Ferrari World","Yas Marina Circuit","Yas Mall"]},
+    {title:"Heritage day",bullets:["Qasr Al Hosn fort","Heritage Village","Marina Mall views"]}
+  ],
+  "barcelona":[
+    {title:"Gaudí masterpieces",bullets:["Sagrada Família","Casa Batlló","Passeig de Gràcia walk"]},
+    {title:"Park Güell & Gràcia",bullets:["Park Güell","Gràcia neighbourhood","Bunkers del Carmel viewpoint"]},
+    {title:"Gothic Quarter",bullets:["Barri Gòtic lanes","Barcelona Cathedral","La Rambla & Boqueria Market"]},
+    {title:"Montjuïc hill",bullets:["Montjuïc Castle","Magic Fountain show","MNAC art museum"]},
+    {title:"Beach & Barceloneta",bullets:["Barceloneta Beach","Port Vell marina","Seafood lunch in Barceloneta"]},
+    {title:"Modernism & markets",bullets:["Hospital de Sant Pau","Sant Antoni Market","El Born district"]}
+  ],
+  "madrid":[
+    {title:"Royal Madrid",bullets:["Royal Palace","Almudena Cathedral","Plaza Mayor"]},
+    {title:"Art triangle",bullets:["Prado Museum","Retiro Park","Reina Sofía"]},
+    {title:"Local neighbourhoods",bullets:["Mercado de San Miguel","Gran Vía stroll","Malasaña district"]}
+  ],
+  "rome":[
+    {title:"Ancient Rome",bullets:["Colosseum","Roman Forum","Palatine Hill"]},
+    {title:"Vatican day",bullets:["St. Peter's Basilica","Vatican Museums","Sistine Chapel"]},
+    {title:"Baroque centre",bullets:["Trevi Fountain","Pantheon","Piazza Navona"]},
+    {title:"Trastevere & views",bullets:["Trastevere lanes","Janiculum Hill view","Campo de' Fiori market"]},
+    {title:"Villas & galleries",bullets:["Borghese Gallery","Villa Borghese gardens","Spanish Steps"]}
+  ],
+  "paris":[
+    {title:"Iconic Paris",bullets:["Eiffel Tower","Trocadéro viewpoint","Seine river walk"]},
+    {title:"Louvre & gardens",bullets:["Louvre Museum","Tuileries Garden","Place de la Concorde"]},
+    {title:"Montmartre",bullets:["Sacré-Cœur","Place du Tertre","Moulin Rouge district"]},
+    {title:"Île de la Cité",bullets:["Notre-Dame exterior","Sainte-Chapelle","Latin Quarter"]},
+    {title:"Champs & Orsay",bullets:["Champs-Élysées","Arc de Triomphe","Musée d'Orsay"]}
+  ],
+  "istanbul":[
+    {title:"Old City wonders",bullets:["Hagia Sophia","Blue Mosque","Topkapı Palace"]},
+    {title:"Bazaars & Bosphorus",bullets:["Grand Bazaar","Spice Bazaar","Bosphorus boat cruise"]},
+    {title:"Two continents",bullets:["Galata Tower","Istiklal Street","Karaköy waterfront"]},
+    {title:"Palaces & parks",bullets:["Dolmabahçe Palace","Ortaköy Mosque","Bebek shoreline walk"]}
+  ],
+  "zurich":[
+    {title:"Old Town & lake",bullets:["Bahnhofstrasse","Lake Zurich promenade","Grossmünster church"]},
+    {title:"Hills & views",bullets:["Uetliberg viewpoint","Lindenhof terrace","Old Town lanes"]},
+    {title:"Museums & river",bullets:["Swiss National Museum","Limmat river walk","Fraumünster windows"]}
+  ],
+  "lucerne":[
+    {title:"Lakeside Lucerne",bullets:["Chapel Bridge","Lion Monument","Lake Lucerne promenade"]},
+    {title:"Mountain excursion",bullets:["Mount Pilatus cog railway","Summit panorama","Lakeside lunch"]},
+    {title:"Old Town day",bullets:["Old Town squares","Musegg Wall towers","Kapellplatz"]}
+  ],
+  "interlaken":[
+    {title:"Jungfrau region",bullets:["Jungfraujoch railway","Top of Europe viewpoint","Grindelwald village"]},
+    {title:"Lakes & paragliding",bullets:["Lake Brienz cruise","Harder Kulm funicular","Höhematte park"]},
+    {title:"Lauterbrunnen valley",bullets:["Staubbach Falls","Trümmelbach Falls","Mürren cable car"]}
+  ],
+  "geneva":[
+    {title:"Lake Geneva",bullets:["Jet d'Eau fountain","English Garden & Flower Clock","Lakeside promenade"]},
+    {title:"Old Town",bullets:["St. Pierre Cathedral","Old Town lanes","Bastions Park"]}
+  ],
+  "london":[
+    {title:"Royal London",bullets:["Buckingham Palace","Westminster Abbey","Big Ben & Parliament"]},
+    {title:"Museums & parks",bullets:["British Museum","Hyde Park","Covent Garden"]},
+    {title:"City & Thames",bullets:["Tower of London","Tower Bridge","Borough Market"]},
+    {title:"West End",bullets:["Trafalgar Square","Piccadilly Circus","Soho stroll"]}
+  ],
+  "amsterdam":[
+    {title:"Canals & culture",bullets:["Canal cruise","Anne Frank House area","Jordaan district"]},
+    {title:"Museum Quarter",bullets:["Rijksmuseum","Van Gogh Museum","Vondelpark"]},
+    {title:"Old centre",bullets:["Dam Square","Begijnhof courtyard","Flower Market"]}
+  ],
+  "milan":[
+    {title:"Duomo & fashion",bullets:["Duomo di Milano","Galleria Vittorio Emanuele II","Quadrilatero della Moda"]},
+    {title:"Art & castle",bullets:["Sforza Castle","Sempione Park","Brera district"]}
+  ],
+  "venice":[
+    {title:"St. Mark's",bullets:["St. Mark's Basilica","Doge's Palace","Rialto Bridge"]},
+    {title:"Islands day",bullets:["Murano glass island","Burano colours","Vaporetto on the lagoon"]}
+  ],
+  "vienna":[
+    {title:"Imperial Vienna",bullets:["Schönbrunn Palace","Hofburg complex","Ringstrasse stroll"]},
+    {title:"Art & centre",bullets:["St. Stephen's Cathedral","Belvedere Palace","Naschmarkt"]}
+  ],
+  "prague":[
+    {title:"Castle & bridge",bullets:["Prague Castle","Charles Bridge","Lesser Town lanes"]},
+    {title:"Old Town",bullets:["Old Town Square","Astronomical Clock","Jewish Quarter"]}
+  ],
+  "antalya":[
+    {title:"Old town & coast",bullets:["Kaleiçi old town","Hadrian's Gate","Marina harbour"]},
+    {title:"Waterfalls & beach",bullets:["Düden Waterfalls","Konyaaltı Beach","Old harbour sunset"]}
+  ],
+  "kuala lumpur":[
+    {title:"City landmarks",bullets:["Petronas Twin Towers","KLCC Park","Bukit Bintang"]},
+    {title:"Culture & caves",bullets:["Batu Caves","Merdeka Square","Central Market"]}
+  ],
+  "singapore":[
+    {title:"Marina Bay",bullets:["Gardens by the Bay","Marina Bay Sands SkyPark","Merlion Park"]},
+    {title:"Culture & island",bullets:["Chinatown","Sentosa Island","Clarke Quay"]}
+  ],
+  "bangkok":[
+    {title:"Temples & palace",bullets:["Grand Palace","Wat Pho reclining Buddha","Wat Arun"]},
+    {title:"Markets & river",bullets:["Chatuchak Market","Chao Phraya boat","Khao San Road"]}
+  ],
+  "tbilisi":[
+    {title:"Old Tbilisi",bullets:["Narikala Fortress","Sulphur baths district","Bridge of Peace"]},
+    {title:"Culture day",bullets:["Rustaveli Avenue","Holy Trinity Cathedral","Mtatsminda viewpoint"]}
+  ],
+  "baku":[
+    {title:"Old City",bullets:["Maiden Tower","Palace of the Shirvanshahs","Icherisheher walls"]},
+    {title:"Modern Baku",bullets:["Flame Towers","Heydar Aliyev Center","Baku Boulevard"]}
+  ]
+};
+
+/* Pick non-repeating curated plans for the exploration days of a city. */
+function curatedPlans(city,count,offset){
+  if(!city)return null;
+  const key=city.trim().toLowerCase();
+  const pool=PLACES_DB[key];
+  if(!pool||!pool.length)return null;
+  const out=[];
+  for(let i=0;i<count;i++){
+    out.push(pool[(i+(offset||0))%pool.length]);
+  }
+  return out;
+}
+
+function templateDay(sd,dest,isFirstDest,isFinalDest,nextCity,explorationIndex,explorationPlans){
   const city=dest.city||'your destination';const stay=dest.hotelName||'your accommodation';
   if(sd.isFirst){
-    if(isFirstDest)return{title:'Arrival in '+city,bullets:['Arrive in '+city,'Transfer to '+stay,'Check in and settle','Short walk near the accommodation']};
-    return{title:'Arrival in '+city,bullets:['Travel to '+city,'Check in at '+stay,'Explore the surrounding area','Evening at leisure']};
+    if(isFirstDest)return{title:'Arrival in '+city,bullets:['Arrive in '+city,'Transfer to '+stay,'Evening walk near the hotel']};
+    return{title:'Arrival in '+city,bullets:['Travel to '+city,'Check in at '+stay,'Explore the surrounding area']};
   }
   if(sd.isLast){
-    if(isFinalDest)return{title:'Departure',bullets:['Breakfast and check-out','Transfer to the airport','Final sightseeing if time allows','Depart '+city]};
-    return{title:'Departure to '+(nextCity||'next destination'),bullets:['Breakfast and check-out','Transfer to station or airport','Travel to '+(nextCity||'the next city'),'Check in at the next accommodation']};
+    if(isFinalDest)return{title:'Departure',bullets:['Breakfast and check-out','Last-minute shopping for souvenirs','Transfer to the airport']};
+    return{title:'Departure to '+(nextCity||'next destination'),bullets:['Breakfast and check-out','Transfer to station or airport','Travel to '+(nextCity||'the next city')]};
   }
 
-  // Fallback plan used only if the AI/API is unavailable. It is intentionally varied so PDF output never repeats the same generic day.
+  // Exploration day. Prefer the curated real-places plan for this city.
+  if(explorationPlans&&explorationPlans[explorationIndex]){
+    const p=explorationPlans[explorationIndex];
+    return{title:p.title,bullets:p.bullets.slice(0,3)};
+  }
+
+  // Generic fallback only for cities not in the curated DB. Kept varied but clearly a placeholder.
   const plans=[
-    {title:'Landmarks of '+city,bullets:['Visit the main landmarks','Walk through central squares','Explore the old town area','Dinner in a local district']},
-    {title:'Culture and museums',bullets:['Visit a major museum','Explore a cultural quarter','Stop at a local cafe','Evening walk in the centre']},
-    {title:'Neighbourhood discovery',bullets:['Explore a different neighbourhood','Visit local boutiques','Lunch in a popular district','Relax at a city viewpoint']},
-    {title:'Parks and viewpoints',bullets:['Walk through a city park','Visit a scenic viewpoint','Explore nearby streets','Evening at leisure']},
-    {title:'Markets and local life',bullets:['Visit a local market','Discover food streets','Explore artisan shops','Coffee break in the centre']},
-    {title:'Architecture and design',bullets:['Visit architectural highlights','Explore modern city areas','Stop at design stores','Evening in a lively district']},
-    {title:'Leisure and shopping',bullets:['Visit a shopping district','Explore elegant boulevards','Lunch near the centre','Relax before the evening']},
-    {title:'Nearby excursion',bullets:['Take a short local excursion','Visit a nearby attraction','Return to '+city,'Evening at leisure']}
+    {title:'Highlights of '+city,bullets:['Visit the main landmarks of '+city,'Walk through the historic centre','Dinner in a lively local district']},
+    {title:'Museums & culture',bullets:['Visit the city\u2019s main museum','Explore a cultural quarter','Evening walk in the old town']},
+    {title:'Neighbourhood discovery',bullets:['Explore a characterful neighbourhood','Lunch in a popular district','Relax at a scenic city viewpoint']},
+    {title:'Parks & viewpoints',bullets:['Walk through a central park','Visit a panoramic viewpoint','Stroll the surrounding streets']},
+    {title:'Markets & local life',bullets:['Visit a famous local market','Discover the food streets','Coffee break in the centre']},
+    {title:'Waterfront & leisure',bullets:['Walk along the waterfront','Visit a landmark nearby','Evening at leisure']},
+    {title:'Nearby excursion',bullets:['Half-day excursion near '+city,'Visit a notable nearby site','Return to '+city+' for the evening']}
   ];
-  const index=(sd.globalDay-2)%plans.length;
-  return plans[index];
+  return plans[explorationIndex%plans.length];
 }
+
 async function aiDays(dest,ctx,key){
   const payload={
     city:dest.city,
@@ -508,7 +652,7 @@ async function aiDays(dest,ctx,key){
   if(!key)return null;
 
   const dayLines=dest.days.map(d=>{let r='exploration day';if(d.isFirst)r=ctx.isFirstDest?'arrival day (first stop, includes hotel check-in)':'arrival day (just travelled here, includes hotel check-in)';if(d.isLast)r=ctx.isFinalDest?'final departure day (depart for home)':('departure day (travel onward to '+ctx.nextCity+')');return 'Day '+d.globalDay+' ('+fmtLong(d.date)+'): '+r;}).join('\n');
-  const prompt='You are a professional travel agency itinerary writer. Write a concise, formal, realistic day-by-day itinerary for one destination of a larger trip, for travellers and visa documentation.\n\nDestination: '+dest.city+', '+dest.country+'\nAccommodation: '+(dest.hotelName||'not specified')+'\nDays to cover:\n'+dayLines+'\n\nCRITICAL RULES:\n- Each day must be meaningfully different from the other days.\n- Do NOT repeat the same attraction, landmark, neighbourhood, museum, beach, park, market, shopping area, viewpoint, or experience across multiple days.\n- Do NOT use generic repeated phrases like "explore historic sites", "city sightseeing", "local attractions", or "leisure time" unless paired with specific real places.\n- For exploration days, use real and specific places in '+dest.city+'.\n- Each exploration day must include 2 to 4 distinct real places or experiences.\n- Spread the itinerary logically across the stay: landmarks, museums, neighbourhoods, food areas, nature, markets, shopping, viewpoints, waterfronts, cultural experiences, and possible short day trips.\n- If the stay is longer than 5 days, include hidden gems, local districts, relaxed days, nature spots, cultural visits, and nearby excursions to avoid repetition.\n- Arrival days should focus on arrival, hotel check-in, and light nearby orientation.\n- Departure days should focus on check-out, transfer, and departure/onward travel.\n- No prices, no booking links, no long paragraphs.\n- Keep each bullet short: 3-10 words.\n'+(ctx.variation?'- Offer a fresh selection of sights.\n':'')+'\nReturn ONLY valid JSON: {"days":[{"dayNumber":<n>,"title":"<t>","bullets":["..",".."]}]} one object per day, same dayNumbers, in order.';
+  const prompt='You are a professional travel agency itinerary writer. Write a concise, formal, realistic day-by-day itinerary for one destination of a larger trip, for travellers and visa documentation.\n\nDestination: '+dest.city+', '+dest.country+'\nAccommodation: '+(dest.hotelName||'not specified')+'\nDays to cover:\n'+dayLines+'\n\nCRITICAL RULES:\n- Every place you name MUST be a REAL, SPECIFIC, well-known place that actually exists in '+dest.city+' (name actual landmarks, museums, neighbourhoods, markets, parks, beaches, viewpoints, streets, or attractions by their real proper names).\n- NEVER use vague generic phrases such as "a local market", "the city centre", "a museum", "a shopping mall", "a nice restaurant", "city sightseeing", "explore historic sites", "local attractions", or "leisure time". Always replace these with the real proper name of a specific place in '+dest.city+'.\n- Each day must be meaningfully different. Do NOT repeat the same landmark, neighbourhood, museum, market, park, beach, viewpoint, mall, or experience across multiple days.\n- Each exploration day must contain a MAXIMUM of 3 activities (2 or 3 only, never more), and each must reference a real named place in '+dest.city+'.\n- Group nearby places together logically so each day is geographically sensible.\n- Spread the stay across themes: top landmarks, museums/culture, neighbourhoods, food/markets, nature/parks, viewpoints, waterfronts, and a possible nearby half-day excursion. For longer stays add lesser-known local gems and a relaxed day.\n- Arrival days: focus on arrival, transfer, hotel check-in, and a short orientation walk near the hotel (2 to 3 short items).\n- Departure days: focus on check-out, optional last activity, and transfer to airport/station or onward travel (2 to 3 short items).\n- No prices, no booking links, no long paragraphs. Keep each bullet 3 to 8 words.\n'+(ctx.variation?'- Offer a fresh alternative selection of real places versus a typical itinerary.\n':'')+'\nReturn ONLY valid JSON: {"days":[{"dayNumber":<n>,"title":"<t>","bullets":["..",".."]}]} one object per day, same dayNumbers, in order, each with 2 or 3 bullets maximum.';
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,messages:[{role:'user',content:prompt}]})});
     if(!resp.ok)return null;
@@ -533,14 +677,29 @@ async function generate(variation){
     let aiResult=null;
     aiResult=await aiDays(dest,{isFirstDest,isFinalDest,nextCity,variation},key);if(aiResult)anyAiOk=true;else anyAiFail=true;
     const byNum={};if(aiResult)aiResult.forEach(d=>byNum[d.dayNumber]=d);
-    const days=dest.days.map(sd=>{const ai=byNum[sd.globalDay];const fb=templateDay(sd,dest,isFirstDest,isFinalDest,nextCity);const bullets=(ai&&Array.isArray(ai.bullets)&&ai.bullets.length>=2)?ai.bullets.slice(0,4):fb.bullets;const title=(ai&&ai.title)?ai.title:fb.title;return Object.assign({},sd,{title,bullets});});
+
+    // Pre-compute curated real-place plans for the exploration days (used when AI is unavailable).
+    const explorationCount=dest.days.filter(d=>!d.isFirst&&!d.isLast).length;
+    const offset=variation?(idx+3):idx; // shift selection on regenerate for fresh picks
+    const explorationPlans=curatedPlans(dest.city,explorationCount,offset);
+    let explorationCursor=0;
+
+    const days=dest.days.map(sd=>{
+      const ai=byNum[sd.globalDay];
+      let expIndex=-1;
+      if(!sd.isFirst&&!sd.isLast){expIndex=explorationCursor;explorationCursor++;}
+      const fb=templateDay(sd,dest,isFirstDest,isFinalDest,nextCity,expIndex,explorationPlans);
+      const bullets=(ai&&Array.isArray(ai.bullets)&&ai.bullets.length>=2)?ai.bullets.slice(0,3):fb.bullets;
+      const title=(ai&&ai.title)?ai.title:fb.title;
+      return Object.assign({},sd,{title,bullets});
+    });
     built.push(Object.assign({},dest,{days}));
   }
   lastItin=built;lastMeta={travelers:state.travelers.map(t=>t.name.trim()).filter(Boolean),arrival:state.arrival,departure:state.departure,total:daysInc(state.arrival,state.departure),agency:state.agency.trim()};
   renderResult(built,lastMeta);
   next.disabled=false;next.textContent='Generate itinerary';
-  if(anyAiFail&&!anyAiOk){notice.textContent='Could not reach the AI service — a varied standard itinerary was generated. Check the Vercel API key, then Regenerate.';notice.style.display='';}
-  else if(anyAiFail){notice.textContent='AI was unavailable for part of the trip; a varied standard itinerary was used there.';notice.style.display='';}
+  if(anyAiFail&&!anyAiOk){notice.textContent='Could not reach the AI service — a detailed standard itinerary was generated from the built-in places guide. Check the Vercel API key, then Regenerate.';notice.style.display='';}
+  else if(anyAiFail){notice.textContent='AI was unavailable for part of the trip; the built-in places guide was used there.';notice.style.display='';}
   setTimeout(()=>{const ab=document.querySelector('.action-bar');ab&&ab.scrollIntoView({behavior:'smooth',block:'start'});},60);
 }
 
